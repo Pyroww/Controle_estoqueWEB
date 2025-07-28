@@ -1,16 +1,27 @@
 document.addEventListener('DOMContentLoaded', () => {
-    // Seletores de Elementos
+    // --- SELETORES DE ELEMENTOS ---
     const productForm = document.getElementById('productForm');
     const productList = document.getElementById('productList');
     const searchInput = document.getElementById('searchInput');
-    const API_URL = '/api/produtos';
+    const lowStockMenu = document.getElementById('lowStockMenu');
+    const bestSellersMenu = document.getElementById('bestSellersMenu');
+    // Elementos do Modal
+    const modal = document.getElementById('reportModal');
+    const modalTitle = document.getElementById('modalTitle');
+    const modalBody = document.getElementById('modalBody');
+    const closeButton = document.querySelector('.close-button');
 
-    // Função para buscar e renderizar os produtos
+    const API_URL = '/api/produtos';
+    let localProductsCache = []; // Cache local para busca e relatórios rápidos
+
+    // --- FUNÇÕES DE COMUNICAÇÃO COM A API ---
+
     const fetchAndRenderProducts = async () => {
         try {
             const response = await fetch(API_URL);
             if (!response.ok) throw new Error('Erro ao buscar produtos.');
             const products = await response.json();
+            localProductsCache = products; // Salva os produtos no cache local
             renderProducts(products);
         } catch (error) {
             console.error(error);
@@ -18,7 +29,55 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Função para renderizar os produtos na tela
+    const addProduct = async (e) => {
+        e.preventDefault();
+        const newProduct = {
+            nome: document.getElementById('productName').value,
+            imagemUrl: document.getElementById('productImage').value,
+            quantidade: parseInt(document.getElementById('productQuantity').value, 10),
+            preco: parseFloat(document.getElementById('productPrice').value)
+        };
+        try {
+            const res = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(newProduct)
+            });
+            if (!res.ok) throw new Error('Falha ao adicionar');
+            productForm.reset();
+            fetchAndRenderProducts();
+        } catch (error) {
+            alert('Falha ao adicionar produto.');
+        }
+    };
+
+    const removeProduct = async (productId) => {
+        if (!confirm('Tem certeza de que deseja remover este produto?')) return;
+        try {
+            const res = await fetch(`${API_URL}/${productId}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Falha ao remover');
+            fetchAndRenderProducts();
+        } catch (error) {
+            alert('Falha ao remover produto.');
+        }
+    };
+
+    const updateProduct = async (product) => {
+        try {
+           const res = await fetch(`${API_URL}/${product.id}`, {
+               method: 'PUT',
+               headers: { 'Content-Type': 'application/json' },
+               body: JSON.stringify(product)
+           });
+           if (!res.ok) throw new Error('Falha ao atualizar');
+           fetchAndRenderProducts();
+        } catch (error) {
+           alert('Falha ao atualizar produto.');
+        }
+    };
+
+    // --- FUNÇÃO PRINCIPAL DE RENDERIZAÇÃO ---
+
     const renderProducts = (productsToRender) => {
         productList.innerHTML = '';
         let totalInventoryValue = 0;
@@ -29,7 +88,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const productCard = document.createElement('div');
             productCard.className = 'product-card';
-            // Armazena todos os dados do produto no próprio elemento HTML
             productCard.dataset.productId = product.id;
             productCard.dataset.product = JSON.stringify(product);
 
@@ -62,54 +120,69 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
-    // Função para ADICIONAR um produto
-    const addProduct = async (e) => {
-        e.preventDefault();
-        const newProduct = {
-            nome: document.getElementById('productName').value,
-            imagemUrl: document.getElementById('productImage').value,
-            quantidade: parseInt(document.getElementById('productQuantity').value, 10),
-            preco: parseFloat(document.getElementById('productPrice').value)
-        };
-        try {
-            await fetch(API_URL, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(newProduct)
+    // --- FUNÇÕES DE RELATÓRIO (MODAL) ---
+
+    const showLowStock = () => {
+        const LOW_STOCK_THRESHOLD = 10;
+        const lowStockProducts = localProductsCache.filter(p => p.quantidade < LOW_STOCK_THRESHOLD).sort((a, b) => a.quantidade - b.quantidade);
+        
+        modalTitle.textContent = 'Produtos com Baixo Estoque';
+        let reportHTML = '<div class="product-grid">';
+
+        if (lowStockProducts.length > 0) {
+            lowStockProducts.forEach(p => {
+                reportHTML += `
+                    <div class="product-card">
+                        <img src="${p.imagem_url || 'https://via.placeholder.com/300x200.png?text=Sem+Imagem'}" class="product-image">
+                        <div class="product-info">
+                            <h3>${p.nome}</h3>
+                            <p style="color: var(--danger-color); font-weight: bold;">Estoque: ${p.quantidade}</p>
+                        </div>
+                    </div>
+                `;
             });
-            productForm.reset();
-            fetchAndRenderProducts();
-        } catch (error) {
-            alert('Falha ao adicionar produto.');
+        } else {
+            reportHTML = '<p>Nenhum produto com baixo estoque no momento.</p>';
         }
-    };
-    
-    // Função para DELETAR um produto
-    const removeProduct = async (productId) => {
-        if (!confirm('Tem certeza de que deseja remover este produto?')) return;
-        try {
-            await fetch(`${API_URL}/${productId}`, { method: 'DELETE' });
-            fetchAndRenderProducts();
-        } catch (error) {
-            alert('Falha ao remover produto.');
-        }
-    };
-    
-    // Função para ATUALIZAR um produto
-    const updateProduct = async (product) => {
-        try {
-           await fetch(`${API_URL}/${product.id}`, {
-               method: 'PUT',
-               headers: { 'Content-Type': 'application/json' },
-               body: JSON.stringify(product)
-           });
-           fetchAndRenderProducts(); // Recarrega tudo para garantir consistência
-        } catch (error) {
-           alert('Falha ao atualizar produto.');
-        }
+        reportHTML += '</div>';
+        modalBody.innerHTML = reportHTML;
+        modal.style.display = 'block';
     };
 
-    // Delegação de eventos para a lista de produtos
+    const showBestSellers = () => {
+        const bestSellers = [...localProductsCache].filter(p => p.vendas > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 5);
+        
+        modalTitle.textContent = 'Top 5 Produtos Mais Vendidos';
+        let reportHTML = '<div class="product-grid">';
+        
+        if (bestSellers.length > 0) {
+            bestSellers.forEach(p => {
+                reportHTML += `
+                    <div class="product-card">
+                         <img src="${p.imagem_url || 'https://via.placeholder.com/300x200.png?text=Sem+Imagem'}" class="product-image">
+                         <div class="product-info">
+                            <h3>${p.nome}</h3>
+                            <p style="color: var(--success-color); font-weight: bold;">Vendas: ${p.vendas}</p>
+                         </div>
+                    </div>
+                `;
+            });
+        } else {
+            reportHTML = '<p>Ainda não há dados de vendas suficientes.</p>';
+        }
+        reportHTML += '</div>';
+        modalBody.innerHTML = reportHTML;
+        modal.style.display = 'block';
+    };
+
+    const closeModal = () => {
+        modal.style.display = "none";
+    }
+
+    // --- EVENT LISTENERS (Escutadores de Eventos) ---
+
+    productForm.addEventListener('submit', addProduct);
+
     productList.addEventListener('click', (e) => {
         const card = e.target.closest('.product-card');
         if (!card) return;
@@ -120,18 +193,27 @@ document.addEventListener('DOMContentLoaded', () => {
         if (e.target.closest('.btn-remove')) {
             removeProduct(product.id);
         } else if (e.target.closest('.decrease-btn')) {
-            product.quantidade = Math.max(0, product.quantidade - changeAmount);
-            product.vendas += changeAmount; // Simula venda
-            updateProduct(product);
+            if (product.quantidade > 0) {
+                product.quantidade = Math.max(0, product.quantidade - changeAmount);
+                product.vendas = (product.vendas || 0) + changeAmount;
+                updateProduct(product);
+            }
         } else if (e.target.closest('.increase-btn')) {
             product.quantidade += changeAmount;
             updateProduct(product);
         }
     });
+    
+    // Listeners para os menus e modal
+    lowStockMenu.addEventListener('click', showLowStock);
+    bestSellersMenu.addEventListener('click', showBestSellers);
+    closeButton.addEventListener('click', closeModal);
+    window.addEventListener('click', (event) => {
+        if (event.target == modal) {
+            closeModal();
+        }
+    });
 
-    // Event listener para o formulário
-    productForm.addEventListener('submit', addProduct);
-
-    // Carga inicial
+    // --- CARGA INICIAL ---
     fetchAndRenderProducts();
 });
