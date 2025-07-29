@@ -1,4 +1,13 @@
 document.addEventListener('DOMContentLoaded', () => {
+
+    const logoutButton = document.getElementById('logout-button');
+    if(logoutButton) {
+        logoutButton.addEventListener('click', () => {
+            sessionStorage.removeItem('loggedIn'); // Remove o indicador de login
+            window.location.href = 'login.html'; // Redireciona para a tela de login
+        });
+    }
+    
     // --- SELETORES DE ELEMENTOS ---
     const productForm = document.getElementById('productForm');
     const productList = document.getElementById('productList');

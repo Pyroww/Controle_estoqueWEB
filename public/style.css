@@ -343,6 +343,22 @@ main {
     font-weight: 700;
 }
 
+.logout-btn {
+    background-color: var(--danger-color);
+    color: white;
+    border: none;
+    border-radius: 5px;
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    margin-left: 20px;
+    transition: background-color 0.3s;
+}
+
+.logout-btn:hover {
+    background-color: #c82333;
+}
+
 /* --- MEDIA QUERY PARA RESPONSIVIDADE EM CELULARES --- */
 
 @media (max-width: 768px) {
@@ -350,7 +366,15 @@ main {
     .sidebar {
         display: none; 
     }
+	
+	#productForm{
+		margin: 5%;
+	}
 
+	h2{
+		margin: 5%;
+	}
+	
     /* Remove a margem da área principal, para que ocupe a tela toda */
     main {
         margin-left: 0;
