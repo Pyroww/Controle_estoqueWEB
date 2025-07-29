@@ -359,6 +359,19 @@ main {
     background-color: #c82333;
 }
 
+/* Estilo para o botão de sair no menu lateral */
+#sidebar-logout-button {
+    margin-top: 20px; /* Adiciona um espaço acima */
+    border-top: 1px solid #34495e; /* Linha separadora */
+    padding-top: 20px;
+}
+
+#sidebar-logout-button:hover {
+    background-color: var(--danger-color) !important; /* Cor vermelha no hover */
+    color: white;
+    border-left-color: white !important; /* Garante que a borda de destaque fique branca */
+}
+
 /* --- MEDIA QUERY PARA RESPONSIVIDADE EM CELULARES --- */
 
 @media (max-width: 768px) {

@@ -1,5 +1,22 @@
 document.addEventListener('DOMContentLoaded', () => {
 
+    const logout = () => {
+    sessionStorage.removeItem('loggedIn'); // Remove o indicador de login
+    window.location.href = 'login.html';   // Redireciona para a tela de login
+    };
+
+    // 2. Selecionamos os dois botões de sair
+    const headerLogoutButton = document.getElementById('logout-button');
+    const sidebarLogoutButton = document.getElementById('sidebar-logout-button');
+
+    // 3. Adicionamos o "escutador" de clique para cada um, chamando a mesma função
+    if (headerLogoutButton) {
+        headerLogoutButton.addEventListener('click', logout);
+    }
+    if (sidebarLogoutButton) {
+        sidebarLogoutButton.addEventListener('click', logout);
+    }
+
     const logoutButton = document.getElementById('logout-button');
     if(logoutButton) {
         logoutButton.addEventListener('click', () => {
@@ -7,7 +24,7 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = 'login.html'; // Redireciona para a tela de login
         });
     }
-    
+
     // --- SELETORES DE ELEMENTOS ---
     const productForm = document.getElementById('productForm');
     const productList = document.getElementById('productList');
