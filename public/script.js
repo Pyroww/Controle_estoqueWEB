@@ -2,7 +2,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // --- SELETORES DE ELEMENTOS ---
     const productForm = document.getElementById('productForm');
     const productList = document.getElementById('productList');
-    const searchInput = document.getElementById('searchInput');
+    const searchInput = document.getElementById('searchInput'); // Selector da busca
+    const searchButton = document.getElementById('searchButton'); // Selector do botão de busca
     const lowStockMenu = document.getElementById('lowStockMenu');
     const bestSellersMenu = document.getElementById('bestSellersMenu');
     // Elementos do Modal
@@ -21,7 +22,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(API_URL);
             if (!response.ok) throw new Error('Erro ao buscar produtos.');
             const products = await response.json();
-            localProductsCache = products; // Salva os produtos no cache local
+            localProductsCache = products; 
             renderProducts(products);
         } catch (error) {
             console.error(error);
@@ -150,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
     };
 
     const showBestSellers = () => {
-        const bestSellers = [...localProductsCache].filter(p => p.vendas > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 5);
+        const bestSellers = [...localProductsCache].filter(p => (p.vendas || 0) > 0).sort((a, b) => b.vendas - a.vendas).slice(0, 5);
         
         modalTitle.textContent = 'Top 5 Produtos Mais Vendidos';
         let reportHTML = '<div class="product-grid">';
@@ -179,6 +180,16 @@ document.addEventListener('DOMContentLoaded', () => {
         modal.style.display = "none";
     }
 
+    // --- LÓGICA DA BUSCA ---
+    const handleSearch = () => {
+        const searchTerm = searchInput.value.toLowerCase();
+        const filteredProducts = localProductsCache.filter(product => 
+            product.nome.toLowerCase().includes(searchTerm)
+        );
+        renderProducts(filteredProducts);
+    };
+
+
     // --- EVENT LISTENERS (Escutadores de Eventos) ---
 
     productForm.addEventListener('submit', addProduct);
@@ -194,8 +205,9 @@ document.addEventListener('DOMContentLoaded', () => {
             removeProduct(product.id);
         } else if (e.target.closest('.decrease-btn')) {
             if (product.quantidade > 0) {
-                product.quantidade = Math.max(0, product.quantidade - changeAmount);
-                product.vendas = (product.vendas || 0) + changeAmount;
+                const amountToDecrease = Math.min(product.quantidade, changeAmount);
+                product.quantidade -= amountToDecrease;
+                product.vendas = (product.vendas || 0) + amountToDecrease;
                 updateProduct(product);
             }
         } else if (e.target.closest('.increase-btn')) {
@@ -213,6 +225,16 @@ document.addEventListener('DOMContentLoaded', () => {
             closeModal();
         }
     });
+
+    // ***** LISTENERS DA BUSCA ADICIONADOS AQUI *****
+    searchButton.addEventListener('click', handleSearch);
+    searchInput.addEventListener('keyup', (event) => {
+        // Para buscar ao pressionar Enter ou ao limpar o campo
+        if (event.key === 'Enter' || searchInput.value === '') {
+            handleSearch();
+        }
+    });
+
 
     // --- CARGA INICIAL ---
     fetchAndRenderProducts();
